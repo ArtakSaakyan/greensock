@@ -1,6 +1,9 @@
 const {src, dest, watch, series} = require('gulp')
 const browserSync = require('browser-sync').create()
 
+// HTML
+const formatHTML = require(`gulp-format-html`)
+
 // SCSS
 const sass = require('gulp-sass')(require('sass'))
 const groupMediaQueries = require('gulp-group-css-media-queries')
@@ -10,6 +13,7 @@ const cleanCss = require('gulp-clean-css')
 // JS
 const fileInclude = require('gulp-file-include')
 const uglify = require('gulp-uglify-es').default
+const rigger = require('gulp-rigger');
 
 // IMG
 const tinify = require('gulp-tinify');
@@ -27,33 +31,40 @@ const pathDest = './assets/'
 
 const path = {
   src: {
-    html:  pathSrc + '**/*.html',
-    css:   pathSrc + 'scss/main.scss',
-    js:    pathSrc + 'js/main.js',
-    img:   pathSrc + 'images/**/*.+(jpg|png|webp|gif)',
-    fonts: pathSrc + 'fonts/*.+(ttf|otf)',
+    html:      pathSrc + '*.html',
+    css:       pathSrc + 'scss/main.scss',
+    js:        pathSrc + 'js/main.js',
+    img:       pathSrc + 'images/**/*.+(jpg|png|webp|gif)',
+    fonts:     pathSrc + 'fonts/*.+(ttf|otf)',
+    vendorCSS: pathSrc + 'scss/vendors/**/*.+(css|sass|scss)',
+    vendorJS:  pathSrc + 'js/vendors/**/*.js',
   },
 
   build: {
     html: './',
-    css:   pathDest + 'css',
-    js:    pathDest + 'js',
-    img:   pathDest + 'img',
-    fonts: pathDest + 'fonts',
+    css:       pathDest + 'css',
+    js:        pathDest + 'js',
+    img:       pathDest + 'img',
+    fonts:     pathDest + 'fonts',
+    vendorCSS: pathDest + 'css',
+    vendorJS:  pathDest + 'js',
   },
 
   watch: {
-    html:  pathSrc + '**/*.html',
-    css:   pathSrc + 'scss/**/*.+(sass|scss)',
-    js:    pathSrc + 'js/**/*.js',
-    img:   pathSrc + 'images/**/*.+(jpg|png|webp|gif)',
-    fonts: pathSrc + 'fonts/*.+(ttf|otf)',
+    html:      pathSrc + '**/*.html',
+    css:       pathSrc + '**/*.+(sass|scss)',
+    js:        pathSrc + '**/*.js',
+    img:       pathSrc + 'images/**/*.+(jpg|png|webp|gif)',
+    fonts:     pathSrc + 'fonts/*.+(ttf|otf)',
+    vendorCSS: pathSrc + 'scss/vendors/**/*.+(css|sass|scss)',
+    vendorJS:  pathSrc + 'js/vendors/**/*.js',
   }
 }
 
 function html() {
   return src(path.src.html)
     .pipe(fileInclude())
+    .pipe(formatHTML())
     .pipe(dest(path.build.html))
     .pipe(browserSync.stream())
 }
@@ -77,6 +88,7 @@ function styles() {
 function scripts() {
   return src(path.src.js, { allowEmpty: true })
     .pipe(sourceMaps.init())
+    .pipe(rigger())
     .pipe(fileInclude())
     .pipe(dest(path.build.js))
     .pipe(uglify())
@@ -85,6 +97,21 @@ function scripts() {
     }))
     .pipe(sourceMaps.write('./'))
     .pipe(dest(path.build.js))
+    .pipe(browserSync.stream())
+}
+
+function vendorCSS() {
+  return src(path.src.vendorCSS, { allowEmpty: true })
+    .pipe(sass())
+    .pipe(groupMediaQueries())
+    .pipe(autoprefixer())
+    .pipe(dest(path.build.vendorCSS))
+    .pipe(browserSync.stream())
+}
+
+function vendorJS() {
+  return src(path.src.vendorJS, { allowEmpty: true })
+    .pipe(dest(path.build.vendorJS))
     .pipe(browserSync.stream())
 }
 
@@ -121,6 +148,8 @@ function startWatch() {
   watch(path.watch.img, images)
   watch(path.watch.fonts, fontsWoff)
   watch(path.watch.fonts, fontsWoff2)
+  watch(path.watch.vendorCSS, vendorCSS)
+  watch(path.watch.vendorJS, vendorJS)
 }
 
 function watchHtml() {
@@ -156,5 +185,5 @@ exports.watchHtml = watchHtml
 exports.watchStyles = watchStyles
 exports.watchScripts = watchScripts
 
-exports.build = series(clear, html, styles, scripts, images, fontsWoff, fontsWoff2)
+exports.build = series(clear, html, styles, scripts, images, fontsWoff, fontsWoff2, vendorCSS, vendorJS)
 exports.default = startWatch

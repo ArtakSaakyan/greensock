@@ -1,0 +1,10 @@
+@import "../../node_modules/normalize.css/normalize";
+@import "../../node_modules/@fancyapps/ui/dist/fancybox";
+@import "../../node_modules/swiper/swiper-bundle";
+@import '../templates/';
+@import url('https://fonts.googleapis.com/css2?family=Montserrat&display=swap');
+
+* {
+  font-family: 'Montserrat', sans-serif;
+  font-size: 20px;
+}
